@@ -1,0 +1,16 @@
+﻿* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: 'Trebuchet MS', 'Comic Sans MS', sans-serif;
+  color: #073b5f;
+}
+
+button,
+input {
+  font-family: inherit;
+}

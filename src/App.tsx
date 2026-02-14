@@ -50,6 +50,11 @@ const WORD_LISTS: Record<string, WordListDefinition> = {
     random: true,
   },
 };
+const DEFAULT_LIST_NAME = Object.keys(WORD_LISTS)[0];
+const DEFAULT_QUESTION_COUNT = Math.max(
+  1,
+  WORD_LISTS[DEFAULT_LIST_NAME]?.entries.length ?? 1,
+);
 const PRESET_QUESTION_COUNTS = [5, 10, 15, 20, 30];
 const LOCALE = "nl-NL";
 type LetterState = "correct" | "wrong" | "missing" | "extra";
@@ -234,7 +239,9 @@ function App() {
   );
   const [lastAttempt, setLastAttempt] = useState("");
   const [lastCorrectWord, setLastCorrectWord] = useState("");
-  const [questionsPerRound, setQuestionsPerRound] = useState(10);
+  const [questionsPerRound, setQuestionsPerRound] = useState(
+    DEFAULT_QUESTION_COUNT,
+  );
   const [customQuestionCount, setCustomQuestionCount] = useState("");
   const [roundMistakes, setRoundMistakes] = useState<
     { word: string; answer: string; feedback: LetterFeedback[] }[]
@@ -338,6 +345,8 @@ function App() {
   };
   const handleWordListChange = (key: string) => {
     setActiveWordListKey(key);
+    const listCount = allLists[key]?.entries.length ?? activeWordList.length;
+    setQuestionsPerRound(Math.max(listCount, 1));
     goToStartScreen();
   };
   const resetNewListDialog = () => {
@@ -374,6 +383,7 @@ function App() {
       },
     }));
     setActiveWordListKey(key);
+    setQuestionsPerRound(Math.max(entries.length, 1));
     resetRoundUi();
     pendingRef.current = [];
     resetNewListDialog();

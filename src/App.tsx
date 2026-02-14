@@ -267,6 +267,8 @@ function App() {
   const [newListBody, setNewListBody] = useState("");
   const [newListRandom, setNewListRandom] = useState(true);
   const [newListError, setNewListError] = useState<string | null>(null);
+  const [listDialogMode, setListDialogMode] = useState<"new" | "edit">("new");
+  const [editingListKey, setEditingListKey] = useState<string | null>(null);
   const pendingRef = useRef<string[]>([]);
   const speechSupported =
     typeof window !== "undefined" && "speechSynthesis" in window;
@@ -355,39 +357,87 @@ function App() {
     setNewListRandom(true);
     setNewListError(null);
   };
-  const handleCreateList = () => {
+
+  const ensureUniqueListKey = (desired: string, originalKey?: string | null) => {
+    let candidate = desired;
+    let suffix = 1;
+
+    while (allLists[candidate] && candidate !== originalKey) {
+      candidate = `${desired} (${suffix})`;
+      suffix += 1;
+    }
+
+    return candidate;
+  };
+
+  const openNewListDialog = () => {
+    resetNewListDialog();
+    setListDialogMode("new");
+    setEditingListKey(null);
+    setShowNewListDialog(true);
+  };
+
+  const openEditListDialog = () => {
+    const data = allLists[activeWordListKey];
+    if (!data) {
+      return;
+    }
+
+    setNewListTitle(activeWordListKey);
+    setNewListBody(data.entries.join("\n"));
+    setNewListRandom(data.random);
+    setNewListError(null);
+    setListDialogMode("edit");
+    setEditingListKey(activeWordListKey);
+    setShowNewListDialog(true);
+  };
+
+  const closeListDialog = () => {
+    resetNewListDialog();
+    setListDialogMode("new");
+    setEditingListKey(null);
+    setShowNewListDialog(false);
+  };
+  const handleSaveList = () => {
     const title = newListTitle.trim();
     if (!title) {
       setNewListError("Vul een titel in.");
       return;
     }
+
     const entries = newListBody
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
+
     if (entries.length === 0) {
       setNewListError("Geef minimaal één woord of zin op.");
       return;
     }
-    let key = `Nieuw: ${title}`;
-    let suffix = 1;
-    while (allLists[key]) {
-      key = `Nieuw: ${title} (${suffix})`;
-      suffix += 1;
-    }
-    setUserLists((previous) => ({
-      ...previous,
-      [key]: {
+
+    const originalKey = listDialogMode === "edit" ? editingListKey : null;
+    const targetKey = ensureUniqueListKey(title, originalKey);
+
+    setUserLists((previous) => {
+      const next = { ...previous };
+
+      if (originalKey && originalKey !== targetKey) {
+        delete next[originalKey];
+      }
+
+      next[targetKey] = {
         entries,
         random: newListRandom,
-      },
-    }));
-    setActiveWordListKey(key);
+      };
+
+      return next;
+    });
+
+    setActiveWordListKey(targetKey);
     setQuestionsPerRound(Math.max(entries.length, 1));
     resetRoundUi();
     pendingRef.current = [];
-    resetNewListDialog();
-    setShowNewListDialog(false);
+    closeListDialog();
   };
   const applyCustomQuestionCount = () => {
     const parsed = Number.parseInt(customQuestionCount, 10);
@@ -524,12 +574,16 @@ function App() {
                 <button
                   className="btn secondary"
                   type="button"
-                  onClick={() => {
-                    resetNewListDialog();
-                    setShowNewListDialog(true);
-                  }}
+                  onClick={openNewListDialog}
                 >
                   Nieuw...
+                </button>
+                <button
+                  className="btn secondary"
+                  type="button"
+                  onClick={openEditListDialog}
+                >
+                  Bewerken
                 </button>
               </div>
             </div>
@@ -567,7 +621,7 @@ function App() {
             {showNewListDialog && (
               <div className="dialog-overlay">
                 <div className="dialog">
-                  <h3>Nieuwe lijst</h3>
+                  <h3>{listDialogMode === "edit" ? "Bewerk lijst" : "Nieuwe lijst"}</h3>
                   <label htmlFor="new-list-title">Titel</label>
                   <input
                     id="new-list-title"
@@ -598,14 +652,14 @@ function App() {
                   <div className="dialog-actions">
                     <button
                       className="btn secondary"
-                      onClick={() => setShowNewListDialog(false)}
+                      onClick={closeListDialog}
                       type="button"
                     >
                       Annuleren
                     </button>
                     <button
                       className="btn primary"
-                      onClick={handleCreateList}
+                      onClick={handleSaveList}
                       type="button"
                     >
                       OK

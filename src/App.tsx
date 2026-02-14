@@ -20,7 +20,7 @@ const WATERWEGEN = [
   'Westerschelde',
 ]
 
-const QUESTIONS_PER_ROUND = 10
+const PRESET_QUESTION_COUNTS = [5, 10, 15, 20, 30]
 
 type LetterState = 'correct' | 'wrong' | 'missing' | 'extra'
 
@@ -165,6 +165,8 @@ function App() {
   const [lastResultCorrect, setLastResultCorrect] = useState<boolean | null>(null)
   const [lastAttempt, setLastAttempt] = useState('')
   const [lastCorrectWord, setLastCorrectWord] = useState('')
+  const [questionsPerRound, setQuestionsPerRound] = useState(10)
+  const [customQuestionCount, setCustomQuestionCount] = useState('')
 
   const speechSupported =
     typeof window !== 'undefined' && 'speechSynthesis' in window
@@ -181,9 +183,10 @@ function App() {
     nextAsked: string[],
     mistakesSnapshot: Record<string, number>,
   ) => {
-    // Binnen 1 ronde tonen we een woord maximaal 1 keer.
+    // Binnen 1 ronde tonen we woorden eerst uniek. Is de lijst op, dan hergebruiken we.
     const excluded = new Set(nextAsked)
-    const options = WATERWEGEN.filter((word) => !excluded.has(word))
+    const uniqueOptions = WATERWEGEN.filter((word) => !excluded.has(word))
+    const options = uniqueOptions.length > 0 ? uniqueOptions : WATERWEGEN
 
     if (options.length === 0) {
       return null
@@ -250,6 +253,33 @@ function App() {
     speakWord(firstWord)
   }
 
+  const goToStartScreen = () => {
+    if (speechSupported) {
+      window.speechSynthesis.cancel()
+    }
+
+    setQuestionNumber(0)
+    setCurrentWord(null)
+    setAskedThisRound([])
+    setAnswer('')
+    setRoundCorrect(0)
+    setLastFeedback([])
+    setLastResultCorrect(null)
+    setLastAttempt('')
+    setLastCorrectWord('')
+    setIsSpeaking(false)
+  }
+
+  const applyCustomQuestionCount = () => {
+    const parsed = Number.parseInt(customQuestionCount, 10)
+    if (Number.isNaN(parsed)) {
+      return
+    }
+
+    const clamped = Math.min(100, Math.max(1, parsed))
+    setQuestionsPerRound(clamped)
+  }
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -285,9 +315,9 @@ function App() {
 
     setMistakeCount(nextMistakeCount)
 
-    if (questionNumber >= QUESTIONS_PER_ROUND) {
+    if (questionNumber >= questionsPerRound) {
       // Einde ronde: geen nieuw woord meer klaarzetten.
-      setQuestionNumber(QUESTIONS_PER_ROUND)
+      setQuestionNumber(questionsPerRound)
       setCurrentWord(null)
       setAnswer('')
       speakCelebration()
@@ -315,7 +345,7 @@ function App() {
     startRound()
   }
 
-  const roundFinished = questionNumber === QUESTIONS_PER_ROUND && currentWord === null
+  const roundFinished = questionNumber >= questionsPerRound && currentWord === null
 
   // Houd focus op het invoerveld tijdens actief dictee.
   useEffect(() => {
@@ -330,6 +360,11 @@ function App() {
       <div className="decor decor-right" />
 
       <section className="card">
+        <div className="top-actions">
+          <button className="btn secondary" onClick={goToStartScreen} type="button">
+            Terug naar begin
+          </button>
+        </div>
         <h1>Dictee van Nederlandse Wateren</h1>
         <p className="subtitle">Luister goed, typ het woord en check je spelling per letter.</p>
 
@@ -341,7 +376,7 @@ function App() {
           <div>
             <span className="label">Vraag</span>
             <strong>
-              {questionNumber === 0 ? 0 : Math.min(questionNumber, QUESTIONS_PER_ROUND)} / {QUESTIONS_PER_ROUND}
+              {questionNumber === 0 ? 0 : Math.min(questionNumber, questionsPerRound)} / {questionsPerRound}
             </strong>
           </div>
           <div>
@@ -359,6 +394,34 @@ function App() {
         {questionNumber === 0 && (
           <div className="center-block">
             <p className="help">Druk op start en luister naar de uitgesproken waterweg.</p>
+            <div className="question-picker">
+              {PRESET_QUESTION_COUNTS.map((count) => (
+                <button
+                  key={count}
+                  className={`btn choice ${questionsPerRound === count ? 'active' : ''}`}
+                  onClick={() => setQuestionsPerRound(count)}
+                  type="button"
+                >
+                  {count}
+                </button>
+              ))}
+            </div>
+            <div className="custom-question-picker">
+              <label htmlFor="custom-count">Eigen aantal vragen</label>
+              <input
+                id="custom-count"
+                type="number"
+                min={1}
+                max={100}
+                value={customQuestionCount}
+                onChange={(event) => setCustomQuestionCount(event.target.value)}
+                placeholder="Bijv. 12"
+              />
+              <button className="btn secondary" onClick={applyCustomQuestionCount} type="button">
+                Gebruik aantal
+              </button>
+            </div>
+            <p className="help">Nu ingesteld: {questionsPerRound} vragen per ronde.</p>
             <button className="btn primary" onClick={startRound}>
               Start dictee
             </button>
@@ -438,7 +501,7 @@ function App() {
             <p className="mascot-text">Goed gedaan!</p>
             <h2>Ronde klaar!</h2>
             <p>
-              Je had {roundCorrect} van de {QUESTIONS_PER_ROUND} goed.
+              Je had {roundCorrect} van de {questionsPerRound} goed.
             </p>
             <p className="help">Woorden die fout gingen komen straks vaker terug.</p>
             <div className="round-end-actions">

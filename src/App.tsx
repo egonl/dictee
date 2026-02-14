@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, RefObject } from "react";
 import "./App.css";
 import celebrationGif from "./assets/thumbs-up.gif";
 type WordListDefinition = {
@@ -62,6 +62,11 @@ type LetterFeedback = {
   expected?: string;
   actual?: string;
   state: LetterState;
+};
+type MistakeEntry = {
+  word: string;
+  answer: string;
+  feedback: LetterFeedback[];
 };
 type Step = "diag" | "up" | "left" | null;
 const normalize = (value: string) =>
@@ -243,9 +248,7 @@ function App() {
     DEFAULT_QUESTION_COUNT,
   );
   const [customQuestionCount, setCustomQuestionCount] = useState("");
-  const [roundMistakes, setRoundMistakes] = useState<
-    { word: string; answer: string; feedback: LetterFeedback[] }[]
-  >([]);
+  const [roundMistakes, setRoundMistakes] = useState<MistakeEntry[]>([]);
   const [showMistakes, setShowMistakes] = useState(false);
   const [userLists, setUserLists] = useState<
     Record<string, WordListDefinition>
@@ -527,317 +530,506 @@ function App() {
         <p className="subtitle">
           Luister goed, typ het woord en check je spelling per letter.
         </p>
-        <div className="stats">
-          <div>
-            <span className="label">Ronde</span>
-            <strong>{round}</strong>
-          </div>
-          <div>
-            <span className="label">Vraag</span>
-            <strong>
-              {questionNumber === 0
-                ? 0
-                : Math.min(questionNumber, questionsPerRound)}{" "}
-              / {questionsPerRound}
-            </strong>
-          </div>
-          <div>
-            <span className="label">Score</span>
-            <strong>
-              {totalCorrect} / {totalQuestions}
-            </strong>
-          </div>
-          <div>
-            <span className="label">Nauwkeurig</span>
-            <strong>{accuracy}%</strong>
-          </div>
-        </div>
+        <StatsPanel
+          round={round}
+          questionNumber={questionNumber}
+          questionsPerRound={questionsPerRound}
+          totalCorrect={totalCorrect}
+          totalQuestions={totalQuestions}
+          accuracy={accuracy}
+        />
         {questionNumber === 0 && (
-          <div className="center-block">
-            <p className="help">
-              Druk op start en luister naar de uitgesproken waterweg.
-            </p>
-            <div className="list-picker">
-              <label htmlFor="word-list-select">Kies woordenlijst</label>
-              <div className="list-picker-row">
-                <select
-                  id="word-list-select"
-                  value={activeWordListKey}
-                  onChange={(event) => handleWordListChange(event.target.value)}
-                >
-                  {listNames.map((key) => (
-                    <option key={key} value={key}>
-                      {key}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="btn secondary"
-                  type="button"
-                  onClick={openNewListDialog}
-                >
-                  Nieuw...
-                </button>
-                <button
-                  className="btn secondary"
-                  type="button"
-                  onClick={openEditListDialog}
-                >
-                  Bewerken
-                </button>
-              </div>
-            </div>
-            <div className="question-picker">
-              {PRESET_QUESTION_COUNTS.map((count) => (
-                <button
-                  key={count}
-                  className={`btn choice ${questionsPerRound === count ? "active" : ""}`}
-                  onClick={() => setQuestionsPerRound(count)}
-                  type="button"
-                >
-                  {count}
-                </button>
-              ))}
-            </div>
-            <div className="custom-question-picker">
-              <label htmlFor="custom-count">Eigen aantal vragen</label>
-              <input
-                id="custom-count"
-                type="number"
-                min={1}
-                max={100}
-                value={customQuestionCount}
-                onChange={(event) => setCustomQuestionCount(event.target.value)}
-                placeholder="Bijv. 12"
-              />
-              <button
-                className="btn secondary"
-                onClick={applyCustomQuestionCount}
-                type="button"
-              >
-                Gebruik aantal
-              </button>
-            </div>
-            {showNewListDialog && (
-              <div className="dialog-overlay">
-                <div className="dialog">
-                  <h3>{listDialogMode === "edit" ? "Bewerk lijst" : "Nieuwe lijst"}</h3>
-                  <label htmlFor="new-list-title">Titel</label>
-                  <input
-                    id="new-list-title"
-                    value={newListTitle}
-                    onChange={(event) => setNewListTitle(event.target.value)}
-                    placeholder="Bijv. Avonturenboek"
-                  />
-                  <label htmlFor="new-list-body">
-                    Woorden/zinnen (één per regel)
-                  </label>
-                  <textarea
-                    id="new-list-body"
-                    value={newListBody}
-                    onChange={(event) => setNewListBody(event.target.value)}
-                    rows={6}
-                  />
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={newListRandom}
-                      onChange={(event) =>
-                        setNewListRandom(event.target.checked)
-                      }
-                    />
-                    Willekeurig afspelen
-                  </label>
-                  {newListError && <p className="warn">{newListError}</p>}
-                  <div className="dialog-actions">
-                    <button
-                      className="btn secondary"
-                      onClick={closeListDialog}
-                      type="button"
-                    >
-                      Annuleren
-                    </button>
-                    <button
-                      className="btn primary"
-                      onClick={handleSaveList}
-                      type="button"
-                    >
-                      OK
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            <p className="help">
-              Nu ingesteld: {questionsPerRound} vragen per ronde.
-            </p>
-            <button className="btn primary" onClick={startRound}>
-              Start dictee
-            </button>
-          </div>
+          <StartControls
+            listNames={listNames}
+            activeWordListKey={activeWordListKey}
+            questionsPerRound={questionsPerRound}
+            customQuestionCount={customQuestionCount}
+            onListChange={handleWordListChange}
+            onPresetSelect={setQuestionsPerRound}
+            onCustomChange={setCustomQuestionCount}
+            onCustomApply={applyCustomQuestionCount}
+            onStart={startRound}
+            onNewList={openNewListDialog}
+            onEditList={openEditListDialog}
+          />
         )}
+
+        <ListDialog
+          show={showNewListDialog}
+          mode={listDialogMode}
+          title={newListTitle}
+          body={newListBody}
+          random={newListRandom}
+          error={newListError}
+          onClose={closeListDialog}
+          onSave={handleSaveList}
+          onTitleChange={setNewListTitle}
+          onBodyChange={setNewListBody}
+          onRandomChange={setNewListRandom}
+        />
         {currentWord && (
-          <>
-            <div className="speak-row">
-              <button
-                className="btn secondary"
-                onClick={() => {
-                  speakWord(currentWord);
-                  answerInputRef.current?.focus();
-                }}
-              >
-                {isSpeaking
-                  ? "Aan het voorlezen..."
-                  : "Lees het woord opnieuw voor"}
-              </button>
-              {!speechSupported && (
-                <p className="warn">
-                  Je browser ondersteunt geen voorleesfunctie.
-                </p>
-              )}
-            </div>
-            <form className="answer-form" onSubmit={handleSubmit}>
-              <label htmlFor="answer">Typ de waterweg:</label>
-              <input
-                ref={answerInputRef}
-                id="answer"
-                autoComplete="off"
-                value={answer}
-                onChange={(event) => setAnswer(event.target.value)}
-                placeholder="Bijv. Waddenzee"
-                required
-              />
-              <button className="btn primary" type="submit">
-                Controleer
-              </button>
-            </form>
-          </>
+          <AnswerArea
+            answer={answer}
+            onAnswerChange={(value) => setAnswer(value)}
+            onSubmit={handleSubmit}
+            onReplay={() => {
+              speakWord(currentWord);
+              answerInputRef.current?.focus();
+            }}
+            isSpeaking={isSpeaking}
+            speechSupported={speechSupported}
+            inputRef={answerInputRef}
+          />
         )}
         {lastResultCorrect !== null && (
-          <section className="feedback">
-            <h2>
-              {lastResultCorrect
-                ? "Goed gedaan!"
-                : "Bijna, probeer de volgende!"}
-            </h2>
-            {!lastResultCorrect && (
-              <p className="word-compare">
-                <strong>Jij typte:</strong> {lastAttempt || "(leeg)"}
-                <br />
-                <strong>Goed is:</strong> {lastCorrectWord}
-              </p>
-            )}
-            <div className="letter-grid">
-              {lastFeedback.map((item, index) => (
-                <span
-                  key={`${item.expected ?? item.actual}-${index}`}
-                  className={`letter ${item.state}`}
-                >
-                  {item.state === "extra" && item.actual
-                    ? `+ ${charLabel(item.actual)}`
-                    : null}
-                  {item.state === "missing" && item.expected
-                    ? `? ${charLabel(item.expected)}`
-                    : null}
-                  {(item.state === "correct" || item.state === "wrong") &&
-                  item.expected
-                    ? charLabel(item.expected)
-                    : null}
-                </span>
-              ))}
-            </div>
-            <p className="legend">
-              <span className="chip correct">Goed</span>
-              <span className="chip wrong">Fout</span>
-              <span className="chip missing">Mist</span>
-              <span className="chip extra">Extra</span>
-            </p>
-          </section>
+          <FeedbackSection
+            lastResultCorrect={lastResultCorrect}
+            lastAttempt={lastAttempt}
+            lastCorrectWord={lastCorrectWord}
+            feedback={lastFeedback}
+          />
         )}
         {roundFinished && (
-          <section className="round-end">
-            <img
-              className="celebration-gif"
-              src={celebrationGif}
-              alt="Enthousiaste thumbs up"
-            />
-            <p className="mascot-text">Goed gedaan!</p>
-            <h2>Ronde klaar!</h2>
-            <p>
-              Je had {roundCorrect} van de {questionsPerRound} goed.
-            </p>
-            <p className="help">
-              Woorden die fout gingen komen straks vaker terug.
-            </p>
-            {roundMistakes.length > 0 && (
-              <>
-                <button
-                  className="btn secondary"
-                  type="button"
-                  onClick={() => setShowMistakes((previous) => !previous)}
-                >
-                  {showMistakes ? "Verberg fouten" : "Bekijk fouten"}
-                </button>
-                {showMistakes && (
-                  <div className="mistakes-panel">
-                    {roundMistakes.map((mistake, index) => (
-                      <article key={`${mistake.word}-${index}`}>
-                        <h3>
-                          {mistake.word} ← {mistake.answer || "(leeg)"}
-                        </h3>
-                        <div className="letter-grid compact">
-                          {mistake.feedback.map((item, idx) => (
-                            <span
-                              key={`${item.expected ?? item.actual}-${idx}`}
-                              className={`letter ${item.state}`}
-                            >
-                              {item.state === "extra" && item.actual
-                                ? `+ ${charLabel(item.actual)}`
-                                : null}
-                              {item.state === "missing" && item.expected
-                                ? `? ${charLabel(item.expected)}`
-                                : null}
-                              {(item.state === "correct" ||
-                                item.state === "wrong") &&
-                              item.expected
-                                ? charLabel(item.expected)
-                                : null}
-                            </span>
-                          ))}
-                        </div>
-                      </article>
-                    ))}
-                    <p className="legend legend-inline">
-                      <span className="chip correct">Goed</span>
-                      <span className="chip wrong">Fout</span>
-                      <span className="chip missing">Mist</span>
-                      <span className="chip extra">Extra</span>
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-            <div className="round-end-actions">
-              <button
-                className="btn secondary"
-                onClick={speakCelebration}
-                type="button"
-              >
-                Zeg het nog eens
-              </button>
-              {!speechSupported && (
-                <p className="warn">
-                  Deze browser ondersteunt geen voorleesfunctie.
-                </p>
-              )}
-            </div>
-            <button className="btn primary" onClick={startNextRound}>
-              Nieuwe ronde
-            </button>
-          </section>
+          <RoundEndSection
+            roundCorrect={roundCorrect}
+            questionsPerRound={questionsPerRound}
+            roundMistakes={roundMistakes}
+            showMistakes={showMistakes}
+            onToggleMistakes={() => setShowMistakes((prev) => !prev)}
+            speechSupported={speechSupported}
+            onReplay={speakCelebration}
+            onNextRound={startNextRound}
+          />
         )}
       </section>
     </main>
   );
 }
+
+type StatsPanelProps = {
+  round: number;
+  questionNumber: number;
+  questionsPerRound: number;
+  totalCorrect: number;
+  totalQuestions: number;
+  accuracy: number;
+};
+
+function StatsPanel({
+  round,
+  questionNumber,
+  questionsPerRound,
+  totalCorrect,
+  totalQuestions,
+  accuracy,
+}: StatsPanelProps) {
+  const displayQuestion =
+    questionNumber === 0 ? 0 : Math.min(questionNumber, questionsPerRound);
+
+  return (
+    <div className="stats">
+      <div>
+        <span className="label">Ronde</span>
+        <strong>{round}</strong>
+      </div>
+      <div>
+        <span className="label">Vraag</span>
+        <strong>
+          {displayQuestion} / {questionsPerRound}
+        </strong>
+      </div>
+      <div>
+        <span className="label">Score</span>
+        <strong>
+          {totalCorrect} / {totalQuestions}
+        </strong>
+      </div>
+      <div>
+        <span className="label">Nauwkeurig</span>
+        <strong>{accuracy}%</strong>
+      </div>
+    </div>
+  );
+}
+
+type StartControlsProps = {
+  listNames: string[];
+  activeWordListKey: string;
+  questionsPerRound: number;
+  customQuestionCount: string;
+  onListChange: (value: string) => void;
+  onPresetSelect: (count: number) => void;
+  onCustomChange: (value: string) => void;
+  onCustomApply: () => void;
+  onStart: () => void;
+  onNewList: () => void;
+  onEditList: () => void;
+};
+
+function StartControls({
+  listNames,
+  activeWordListKey,
+  questionsPerRound,
+  customQuestionCount,
+  onListChange,
+  onPresetSelect,
+  onCustomChange,
+  onCustomApply,
+  onStart,
+  onNewList,
+  onEditList,
+}: StartControlsProps) {
+  return (
+    <div className="center-block">
+      <p className="help">
+        Druk op start en luister naar de uitgesproken waterweg.
+      </p>
+      <div className="list-picker">
+        <label htmlFor="word-list-select">Kies woordenlijst</label>
+        <div className="list-picker-row">
+          <select
+            id="word-list-select"
+            value={activeWordListKey}
+            onChange={(event) => onListChange(event.target.value)}
+          >
+            {listNames.map((key) => (
+              <option key={key} value={key}>
+                {key}
+              </option>
+            ))}
+          </select>
+          <button className="btn secondary" type="button" onClick={onNewList}>
+            Nieuw...
+          </button>
+          <button className="btn secondary" type="button" onClick={onEditList}>
+            Bewerken
+          </button>
+        </div>
+      </div>
+      <div className="question-picker">
+        {PRESET_QUESTION_COUNTS.map((count) => (
+          <button
+            key={count}
+            className={`btn choice ${
+              questionsPerRound === count ? "active" : ""
+            }`}
+            onClick={() => onPresetSelect(count)}
+            type="button"
+          >
+            {count}
+          </button>
+        ))}
+      </div>
+      <div className="custom-question-picker">
+        <label htmlFor="custom-count">Eigen aantal vragen</label>
+        <input
+          id="custom-count"
+          type="number"
+          min={1}
+          max={100}
+          value={customQuestionCount}
+          onChange={(event) => onCustomChange(event.target.value)}
+          placeholder="Bijv. 12"
+        />
+        <button
+          className="btn secondary"
+          onClick={onCustomApply}
+          type="button"
+        >
+          Gebruik aantal
+        </button>
+      </div>
+      <p className="help">Nu ingesteld: {questionsPerRound} vragen per ronde.</p>
+      <button className="btn primary" onClick={onStart}>
+        Start dictee
+      </button>
+    </div>
+  );
+}
+
+type AnswerAreaProps = {
+  answer: string;
+  onAnswerChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onReplay: () => void;
+  isSpeaking: boolean;
+  speechSupported: boolean;
+  inputRef: RefObject<HTMLInputElement | null>;
+};
+
+function AnswerArea({
+  answer,
+  onAnswerChange,
+  onSubmit,
+  onReplay,
+  isSpeaking,
+  speechSupported,
+  inputRef,
+}: AnswerAreaProps) {
+  return (
+    <>
+      <div className="speak-row">
+        <button className="btn secondary" onClick={onReplay}>
+          {isSpeaking ? "Aan het voorlezen..." : "Lees het woord opnieuw voor"}
+        </button>
+        {!speechSupported && (
+          <p className="warn">Je browser ondersteunt geen voorleesfunctie.</p>
+        )}
+      </div>
+
+      <form className="answer-form" onSubmit={onSubmit}>
+        <label htmlFor="answer">Typ de waterweg:</label>
+        <input
+          ref={inputRef}
+          id="answer"
+          autoComplete="off"
+          value={answer}
+          onChange={(event) => onAnswerChange(event.target.value)}
+          placeholder="Bijv. Waddenzee"
+          required
+        />
+        <button className="btn primary" type="submit">
+          Controleer
+        </button>
+      </form>
+    </>
+  );
+}
+
+type FeedbackSectionProps = {
+  lastResultCorrect: boolean;
+  lastAttempt: string;
+  lastCorrectWord: string;
+  feedback: LetterFeedback[];
+};
+
+function FeedbackSection({
+  lastResultCorrect,
+  lastAttempt,
+  lastCorrectWord,
+  feedback,
+}: FeedbackSectionProps) {
+  return (
+    <section className="feedback">
+      <h2>
+        {lastResultCorrect ? "Goed gedaan!" : "Bijna, probeer de volgende!"}
+      </h2>
+      {!lastResultCorrect && (
+        <p className="word-compare">
+          <strong>Jij typte:</strong> {lastAttempt || "(leeg)"}
+          <br />
+          <strong>Goed is:</strong> {lastCorrectWord}
+        </p>
+      )}
+      <div className="letter-grid">
+        {feedback.map((item, index) => (
+          <span
+            key={`${item.expected ?? item.actual}-${index}`}
+            className={`letter ${item.state}`}
+          >
+            {item.state === "extra" && item.actual
+              ? `+ ${charLabel(item.actual)}`
+              : null}
+            {item.state === "missing" && item.expected
+              ? `? ${charLabel(item.expected)}`
+              : null}
+            {(item.state === "correct" || item.state === "wrong") && item.expected
+              ? charLabel(item.expected)
+              : null}
+          </span>
+        ))}
+      </div>
+      <p className="legend">
+        <span className="chip correct">Goed</span>
+        <span className="chip wrong">Fout</span>
+        <span className="chip missing">Mist</span>
+        <span className="chip extra">Extra</span>
+      </p>
+    </section>
+  );
+}
+
+type RoundEndSectionProps = {
+  roundCorrect: number;
+  questionsPerRound: number;
+  roundMistakes: MistakeEntry[];
+  showMistakes: boolean;
+  onToggleMistakes: () => void;
+  speechSupported: boolean;
+  onReplay: () => void;
+  onNextRound: () => void;
+};
+
+function RoundEndSection({
+  roundCorrect,
+  questionsPerRound,
+  roundMistakes,
+  showMistakes,
+  onToggleMistakes,
+  speechSupported,
+  onReplay,
+  onNextRound,
+}: RoundEndSectionProps) {
+  return (
+    <section className="round-end">
+      <img
+        className="celebration-gif"
+        src={celebrationGif}
+        alt="Enthousiaste thumbs up"
+      />
+      <p className="mascot-text">Goed gedaan!</p>
+      <h2>Ronde klaar!</h2>
+      <p>
+        Je had {roundCorrect} van de {questionsPerRound} goed.
+      </p>
+      <p className="help">
+        Woorden die fout gingen komen straks vaker terug.
+      </p>
+      {roundMistakes.length > 0 && (
+        <>
+          <button
+            className="btn secondary"
+            type="button"
+            onClick={onToggleMistakes}
+          >
+            {showMistakes ? "Verberg fouten" : "Bekijk fouten"}
+          </button>
+          {showMistakes && <MistakesPanel entries={roundMistakes} />}
+        </>
+      )}
+      <div className="round-end-actions">
+        <button
+          className="btn secondary"
+          onClick={onReplay}
+          type="button"
+        >
+          Zeg het nog eens
+        </button>
+        {!speechSupported && (
+          <p className="warn">Deze browser ondersteunt geen voorleesfunctie.</p>
+        )}
+      </div>
+      <button className="btn primary" onClick={onNextRound}>
+        Nieuwe ronde
+      </button>
+    </section>
+  );
+}
+
+type MistakesPanelProps = {
+  entries: MistakeEntry[];
+};
+
+function MistakesPanel({ entries }: MistakesPanelProps) {
+  return (
+    <div className="mistakes-panel">
+      {entries.map((mistake, index) => (
+        <article key={`${mistake.word}-${index}`}>
+          <h3>
+            {mistake.word} ← {mistake.answer || "(leeg)"}
+          </h3>
+          <div className="letter-grid compact">
+            {mistake.feedback.map((item, idx) => (
+              <span
+                key={`${item.expected ?? item.actual}-${idx}`}
+                className={`letter ${item.state}`}
+              >
+                {item.state === "extra" && item.actual
+                  ? `+ ${charLabel(item.actual)}`
+                  : null}
+                {item.state === "missing" && item.expected
+                  ? `? ${charLabel(item.expected)}`
+                  : null}
+                {(item.state === "correct" || item.state === "wrong") &&
+                item.expected
+                  ? charLabel(item.expected)
+                  : null}
+              </span>
+            ))}
+          </div>
+        </article>
+      ))}
+      <p className="legend legend-inline">
+        <span className="chip correct">Goed</span>
+        <span className="chip wrong">Fout</span>
+        <span className="chip missing">Mist</span>
+        <span className="chip extra">Extra</span>
+      </p>
+    </div>
+  );
+}
+
+type ListDialogProps = {
+  show: boolean;
+  mode: "new" | "edit";
+  title: string;
+  body: string;
+  random: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSave: () => void;
+  onTitleChange: (value: string) => void;
+  onBodyChange: (value: string) => void;
+  onRandomChange: (value: boolean) => void;
+};
+
+function ListDialog({
+  show,
+  mode,
+  title,
+  body,
+  random,
+  error,
+  onClose,
+  onSave,
+  onTitleChange,
+  onBodyChange,
+  onRandomChange,
+}: ListDialogProps) {
+  if (!show) {
+    return null;
+  }
+
+  return (
+    <div className="dialog-overlay">
+      <div className="dialog">
+        <h3>{mode === "edit" ? "Bewerk lijst" : "Nieuwe lijst"}</h3>
+        <label htmlFor="new-list-title">Titel</label>
+        <input
+          id="new-list-title"
+          value={title}
+          onChange={(event) => onTitleChange(event.target.value)}
+          placeholder="Bijv. Avonturenboek"
+        />
+        <label htmlFor="new-list-body">
+          Woorden/zinnen (één per regel)
+        </label>
+        <textarea
+          id="new-list-body"
+          value={body}
+          onChange={(event) => onBodyChange(event.target.value)}
+          rows={6}
+        />
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={random}
+            onChange={(event) => onRandomChange(event.target.checked)}
+          />
+          Willekeurig afspelen
+        </label>
+        {error && <p className="warn">{error}</p>}
+        <div className="dialog-actions">
+          <button className="btn secondary" onClick={onClose} type="button">
+            Annuleren
+          </button>
+          <button className="btn primary" onClick={onSave} type="button">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default App;

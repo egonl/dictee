@@ -12,6 +12,8 @@ type ListDialogProps = {
   onRandomChange: (value: boolean) => void;
 };
 
+import { useEffect, useRef } from "react";
+
 export default function ListDialog({
   show,
   mode,
@@ -25,6 +27,14 @@ export default function ListDialog({
   onBodyChange,
   onRandomChange,
 }: ListDialogProps) {
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (show) {
+      titleInputRef.current?.focus();
+    }
+  }, [show]);
+
   if (!show) {
     return null;
   }
@@ -36,6 +46,7 @@ export default function ListDialog({
         <label htmlFor="new-list-title">Titel</label>
         <input
           id="new-list-title"
+          ref={titleInputRef}
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
           placeholder="Bijv. Avonturenboek"

@@ -33,7 +33,9 @@ export default function StatsPanel({
       <div>
         <span className="label">Vraag</span>
         <strong>
-          {displayQuestion} / {isUnlimited ? "onbeperkt" : questionsPerRound}
+          {isUnlimited
+            ? displayQuestion
+            : `${displayQuestion} / ${questionsPerRound}`}
         </strong>
       </div>
       <div>

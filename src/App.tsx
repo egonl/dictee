@@ -573,11 +573,27 @@ function App() {
         <section className="card">
           <div className="top-actions">
             <button
-              className="btn secondary"
+              className="btn secondary icon-btn"
               onClick={goToStartScreen}
               type="button"
+              aria-label="Startscherm"
+              title="Startscherm"
             >
-              Terug naar begin
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+                className="icon-home"
+              >
+                <path
+                  d="M3 10.5L12 3l9 7.5M6.75 8.25V21h10.5V8.25"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
           <h1>Dictee: {activeWordListKey}</h1>
@@ -623,7 +639,6 @@ function App() {
               showMistakes={showMistakes}
               onToggleMistakes={() => setShowMistakes((prev) => !prev)}
               speechSupported={speechSupported}
-              onReplay={speakCelebration}
               onNextRound={startNextRound}
               celebrationGifSrc={celebrationGifSrc}
             />

@@ -43,7 +43,7 @@ export default function StartControls({
             ))}
           </select>
           <button className="btn secondary" type="button" onClick={onEditList}>
-            Bewerken
+            Bewerken...
           </button>
           <button className="btn secondary" type="button" onClick={onNewList}>
             Nieuw...
@@ -98,13 +98,13 @@ export default function StartControls({
           </span>
           <span className="mode-option-content">
             <span className="mode-option-title">
-              Ga door tot alles ten minste één keer goed is
+              Ga door tot alles ten minste één keer goed is ingetikt
             </span>
           </span>
         </label>
       </fieldset>
       <button className="btn primary" onClick={onStart}>
-        Start dictee
+        Dictee starten
       </button>
     </div>
   );

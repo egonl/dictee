@@ -31,18 +31,18 @@ export default function AnswerArea({
       </div>
 
       <form className="answer-form" onSubmit={onSubmit}>
-        <label htmlFor="answer">Typ de waterweg:</label>
+        <label htmlFor="answer">Jouw antwoord:</label>
         <input
           ref={inputRef}
           id="answer"
           autoComplete="off"
           value={answer}
           onChange={(event) => onAnswerChange(event.target.value)}
-          placeholder="Bijv. Waddenzee"
+          placeholder="......."
           required
         />
         <button className="btn primary" type="submit">
-          Controleer
+          Controleren
         </button>
       </form>
     </>

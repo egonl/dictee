@@ -348,6 +348,20 @@ strong {
   color: #124f74;
 }
 
+.btn.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+}
+
+.icon-home {
+  width: 20px;
+  height: 20px;
+}
+
 .feedback {
   margin-top: 24px;
   padding: 16px;

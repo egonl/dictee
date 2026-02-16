@@ -8,7 +8,6 @@ type RoundEndSectionProps = {
   showMistakes: boolean;
   onToggleMistakes: () => void;
   speechSupported: boolean;
-  onReplay: () => void;
   onNextRound: () => void;
   celebrationGifSrc: string;
 };
@@ -20,7 +19,6 @@ export default function RoundEndSection({
   showMistakes,
   onToggleMistakes,
   speechSupported,
-  onReplay,
   onNextRound,
   celebrationGifSrc,
 }: RoundEndSectionProps) {
@@ -36,9 +34,6 @@ export default function RoundEndSection({
       <p>
         Je had {roundCorrect} van de {questionsPerRound} goed.
       </p>
-      <p className="help">
-        Woorden die fout gingen komen straks vaker terug.
-      </p>
       {roundMistakes.length > 0 && (
         <>
           <button
@@ -52,9 +47,6 @@ export default function RoundEndSection({
         </>
       )}
       <div className="round-end-actions">
-        <button className="btn secondary" onClick={onReplay} type="button">
-          Zeg het nog eens
-        </button>
         {!speechSupported && (
           <p className="warn">Deze browser ondersteunt geen voorleesfunctie.</p>
         )}

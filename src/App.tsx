@@ -350,7 +350,7 @@ function App() {
     goToStartScreen();
   };
   const handleDeleteList = () => {
-    if (!userLists[activeWordListKey]) {
+    if (WORD_LISTS[activeWordListKey] || !userLists[activeWordListKey]) {
       return;
     }
 
@@ -531,7 +531,8 @@ function App() {
     setRound((previous) => previous + 1);
     startRound();
   };
-  const canDeleteActiveList = Boolean(userLists[activeWordListKey]);
+  const canDeleteActiveList =
+    !WORD_LISTS[activeWordListKey] && Boolean(userLists[activeWordListKey]);
   const roundFinished =
     currentWord === null &&
     (continueUntilCorrect

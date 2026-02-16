@@ -326,10 +326,10 @@ function App() {
     pendingRef.current = rest;
     return nextWord ?? (continueUntilCorrect ? null : activeWordList[0]);
   };
-  const startRound = () => {
+  const startRound = (baseMistakes?: Record<string, number>) => {
     remainingWordsRef.current = new Set(activeWordList);
     setRemainingCount(activeWordList.length);
-    const firstWord = drawNextWord(mistakeCount);
+    const firstWord = drawNextWord(baseMistakes ?? mistakeCount);
     if (!firstWord) {
       setQuestionNumber(0);
       setCurrentWord(null);
@@ -341,6 +341,14 @@ function App() {
     setAnswer("");
     resetRoundUi();
     speakWord(firstWord);
+  };
+  const startFreshGame = () => {
+    setRound(1);
+    setTotalCorrect(0);
+    setTotalQuestions(0);
+    setMistakeCount({});
+    pendingRef.current = [];
+    startRound({});
   };
   const goToStartScreen = () => {
     if (speechSupported) {
@@ -578,7 +586,7 @@ function App() {
             onListChange={handleWordListChange}
             onCustomChange={handleQuestionCountChange}
             onContinueUntilCorrectChange={setContinueUntilCorrect}
-            onStart={startRound}
+            onStart={startFreshGame}
             onNewList={openNewListDialog}
             onEditList={openEditListDialog}
             onDeleteList={handleDeleteList}

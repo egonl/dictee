@@ -38,7 +38,7 @@ export default function AnswerArea({
           autoComplete="off"
           value={answer}
           onChange={(event) => onAnswerChange(event.target.value)}
-          placeholder="......."
+          placeholder="..."
           required
         />
         <button className="btn primary" type="submit">

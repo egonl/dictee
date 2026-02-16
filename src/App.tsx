@@ -314,6 +314,12 @@ function App() {
     remainingWordsRef.current = new Set(activeWordList);
     setRemainingCount(activeWordList.length);
     const firstWord = drawNextWord(mistakeCount);
+    if (!firstWord) {
+      setQuestionNumber(0);
+      setCurrentWord(null);
+      setAnswer("");
+      return;
+    }
     setQuestionNumber(1);
     setCurrentWord(firstWord);
     setAnswer("");
@@ -524,6 +530,7 @@ function App() {
     (continueUntilCorrect
       ? remainingCount === 0
       : questionNumber >= questionsPerRound);
+  const isStartScreen = questionNumber === 0;
   // Houd focus op het invoerveld tijdens actief dictee.
   useEffect(() => {
     if (currentWord) {
@@ -534,30 +541,12 @@ function App() {
     <main className="app-shell">
       <div className="decor decor-left" />
       <div className="decor decor-right" />
-      <section className="card">
-        <div className="top-actions">
-          <button
-            className="btn secondary"
-            onClick={goToStartScreen}
-            type="button"
-          >
-            Terug naar begin
-          </button>
-        </div>
-        <h1>Dictee: {activeWordListKey}</h1>
-        <p className="subtitle">
-          Luister goed, typ het woord en check je spelling per letter.
-        </p>
-        <StatsPanel
-          round={round}
-          questionNumber={questionNumber}
-          questionsPerRound={questionsPerRound}
-          totalCorrect={totalCorrect}
-          totalQuestions={totalQuestions}
-          accuracy={accuracy}
-          isUnlimited={continueUntilCorrect}
-        />
-        {questionNumber === 0 && (
+      {isStartScreen ? (
+        <section className="card start-card">
+          <h1>Welkom bij dictee</h1>
+          <p className="subtitle">
+            Kies een woordenlijst, stel je ronde in en start het dictee.
+          </p>
           <StartControls
             listNames={listNames}
             activeWordListKey={activeWordListKey}
@@ -575,59 +564,83 @@ function App() {
             onDeleteList={handleDeleteList}
             canDeleteList={canDeleteActiveList}
           />
-        )}
-
-        <ListDialog
-          show={showNewListDialog}
-          mode={listDialogMode}
-          title={newListTitle}
-          body={newListBody}
-          random={newListRandom}
-          gifUrl={newListGifUrl}
-          error={newListError}
-          onClose={closeListDialog}
-          onSave={handleSaveList}
-          onTitleChange={setNewListTitle}
-          onBodyChange={setNewListBody}
-          onRandomChange={setNewListRandom}
-          onGifUrlChange={setNewListGifUrl}
-        />
-        {currentWord && (
-          <AnswerArea
-            answer={answer}
-            onAnswerChange={(value) => setAnswer(value)}
-            onSubmit={handleSubmit}
-            onReplay={() => {
-              speakWord(currentWord);
-              answerInputRef.current?.focus();
-            }}
-            isSpeaking={isSpeaking}
-            speechSupported={speechSupported}
-            inputRef={answerInputRef}
-          />
-        )}
-        {lastResultCorrect !== null && (
-          <FeedbackSection
-            lastResultCorrect={lastResultCorrect}
-            lastAttempt={lastAttempt}
-            lastCorrectWord={lastCorrectWord}
-            feedback={lastFeedback}
-          />
-        )}
-        {roundFinished && (
-          <RoundEndSection
-            roundCorrect={roundCorrect}
+        </section>
+      ) : (
+        <section className="card">
+          <div className="top-actions">
+            <button
+              className="btn secondary"
+              onClick={goToStartScreen}
+              type="button"
+            >
+              Terug naar begin
+            </button>
+          </div>
+          <h1>Dictee: {activeWordListKey}</h1>
+          <p className="subtitle">
+            Luister goed, typ het woord en check je spelling per letter.
+          </p>
+          <StatsPanel
+            round={round}
+            questionNumber={questionNumber}
             questionsPerRound={questionsPerRound}
-            roundMistakes={roundMistakes}
-            showMistakes={showMistakes}
-            onToggleMistakes={() => setShowMistakes((prev) => !prev)}
-            speechSupported={speechSupported}
-            onReplay={speakCelebration}
-            onNextRound={startNextRound}
-            celebrationGifSrc={celebrationGifSrc}
+            totalCorrect={totalCorrect}
+            totalQuestions={totalQuestions}
+            accuracy={accuracy}
+            isUnlimited={continueUntilCorrect}
           />
-        )}
-      </section>
+          {currentWord && (
+            <AnswerArea
+              answer={answer}
+              onAnswerChange={(value) => setAnswer(value)}
+              onSubmit={handleSubmit}
+              onReplay={() => {
+                speakWord(currentWord);
+                answerInputRef.current?.focus();
+              }}
+              isSpeaking={isSpeaking}
+              speechSupported={speechSupported}
+              inputRef={answerInputRef}
+            />
+          )}
+          {lastResultCorrect !== null && (
+            <FeedbackSection
+              lastResultCorrect={lastResultCorrect}
+              lastAttempt={lastAttempt}
+              lastCorrectWord={lastCorrectWord}
+              feedback={lastFeedback}
+            />
+          )}
+          {roundFinished && (
+            <RoundEndSection
+              roundCorrect={roundCorrect}
+              questionsPerRound={questionsPerRound}
+              roundMistakes={roundMistakes}
+              showMistakes={showMistakes}
+              onToggleMistakes={() => setShowMistakes((prev) => !prev)}
+              speechSupported={speechSupported}
+              onReplay={speakCelebration}
+              onNextRound={startNextRound}
+              celebrationGifSrc={celebrationGifSrc}
+            />
+          )}
+        </section>
+      )}
+      <ListDialog
+        show={showNewListDialog}
+        mode={listDialogMode}
+        title={newListTitle}
+        body={newListBody}
+        random={newListRandom}
+        gifUrl={newListGifUrl}
+        error={newListError}
+        onClose={closeListDialog}
+        onSave={handleSaveList}
+        onTitleChange={setNewListTitle}
+        onBodyChange={setNewListBody}
+        onRandomChange={setNewListRandom}
+        onGifUrlChange={setNewListGifUrl}
+      />
     </main>
   );
 }

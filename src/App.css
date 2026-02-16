@@ -60,6 +60,10 @@
   z-index: 1;
 }
 
+.start-card {
+  width: min(760px, 100%);
+}
+
 .top-actions {
   display: flex;
   justify-content: flex-end;

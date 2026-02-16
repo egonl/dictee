@@ -37,9 +37,6 @@ export default function StartControls({
 }: StartControlsProps) {
   return (
     <div className="center-block">
-      <p className="help">
-        Druk op start en luister naar de uitgesproken waterweg.
-      </p>
       <div className="list-picker">
         <label htmlFor="word-list-select">Kies woordenlijst</label>
         <div className="list-picker-row">

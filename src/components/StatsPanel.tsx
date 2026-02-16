@@ -5,6 +5,7 @@ type StatsPanelProps = {
   totalCorrect: number;
   totalQuestions: number;
   accuracy: number;
+  isUnlimited: boolean;
 };
 
 export default function StatsPanel({
@@ -14,9 +15,14 @@ export default function StatsPanel({
   totalCorrect,
   totalQuestions,
   accuracy,
+  isUnlimited,
 }: StatsPanelProps) {
   const displayQuestion =
-    questionNumber === 0 ? 0 : Math.min(questionNumber, questionsPerRound);
+    questionNumber === 0
+      ? 0
+      : isUnlimited
+        ? questionNumber
+        : Math.min(questionNumber, questionsPerRound);
 
   return (
     <div className="stats">
@@ -27,7 +33,7 @@ export default function StatsPanel({
       <div>
         <span className="label">Vraag</span>
         <strong>
-          {displayQuestion} / {questionsPerRound}
+          {displayQuestion} / {isUnlimited ? "onbeperkt" : questionsPerRound}
         </strong>
       </div>
       <div>

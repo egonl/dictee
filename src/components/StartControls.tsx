@@ -5,10 +5,12 @@ type StartControlsProps = {
   activeWordListKey: string;
   questionsPerRound: number;
   customQuestionCount: string;
+  continueUntilCorrect: boolean;
   onListChange: (value: string) => void;
   onPresetSelect: (count: number) => void;
   onCustomChange: (value: string) => void;
   onCustomApply: () => void;
+  onContinueUntilCorrectChange: (value: boolean) => void;
   onStart: () => void;
   onNewList: () => void;
   onEditList: () => void;
@@ -21,10 +23,12 @@ export default function StartControls({
   activeWordListKey,
   questionsPerRound,
   customQuestionCount,
+  continueUntilCorrect,
   onListChange,
   onPresetSelect,
   onCustomChange,
   onCustomApply,
+  onContinueUntilCorrectChange,
   onStart,
   onNewList,
   onEditList,
@@ -75,6 +79,7 @@ export default function StartControls({
             }`}
             onClick={() => onPresetSelect(count)}
             type="button"
+            disabled={continueUntilCorrect}
           >
             {count}
           </button>
@@ -90,15 +95,27 @@ export default function StartControls({
           value={customQuestionCount}
           onChange={(event) => onCustomChange(event.target.value)}
           placeholder="Bijv. 12"
+          disabled={continueUntilCorrect}
         />
         <button
           className="btn secondary"
           onClick={onCustomApply}
           type="button"
+          disabled={continueUntilCorrect}
         >
           Gebruik aantal
         </button>
       </div>
+      <label className="checkbox-label">
+        <input
+          type="checkbox"
+          checked={continueUntilCorrect}
+          onChange={(event) =>
+            onContinueUntilCorrectChange(event.target.checked)
+          }
+        />
+        Ga door tot alles goed is
+      </label>
       <p className="help">Nu ingesteld: {questionsPerRound} vragen per ronde.</p>
       <button className="btn primary" onClick={onStart}>
         Start dictee

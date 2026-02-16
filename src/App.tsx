@@ -206,8 +206,10 @@ function App() {
     DEFAULT_QUESTION_COUNT,
   );
   const [customQuestionCount, setCustomQuestionCount] = useState("");
+  const [continueUntilCorrect, setContinueUntilCorrect] = useState(false);
   const [roundMistakes, setRoundMistakes] = useState<MistakeEntry[]>([]);
   const [showMistakes, setShowMistakes] = useState(false);
+  const [remainingCount, setRemainingCount] = useState(0);
   const [userLists, setUserLists] = useState<Record<string, WordListDefinition>>(
     () => loadStoredLists(),
   );
@@ -242,6 +244,7 @@ function App() {
   const [listDialogMode, setListDialogMode] = useState<"new" | "edit">("new");
   const [editingListKey, setEditingListKey] = useState<string | null>(null);
   const pendingRef = useRef<string[]>([]);
+  const remainingWordsRef = useRef<Set<string>>(new Set());
   const speechSupported =
     typeof window !== "undefined" && "speechSynthesis" in window;
   // Totaalpercentage over alle gespeelde vragen.
@@ -291,14 +294,25 @@ function App() {
       const mistakeWords = Object.entries(currentMistakes)
         .filter(([, count]) => count > 0)
         .map(([word]) => word);
-      const base = mistakeWords.length > 0 ? mistakeWords : activeWordList;
+      const remainingWords = Array.from(remainingWordsRef.current);
+      if (continueUntilCorrect && remainingWords.length === 0) {
+        return null;
+      }
+      const base =
+        mistakeWords.length > 0
+          ? mistakeWords
+          : continueUntilCorrect
+            ? remainingWords
+            : activeWordList;
       pool = activeListRandom ? shuffleWords(base) : [...base];
     }
     const [nextWord, ...rest] = pool;
     pendingRef.current = rest;
-    return nextWord ?? activeWordList[0];
+    return nextWord ?? (continueUntilCorrect ? null : activeWordList[0]);
   };
   const startRound = () => {
+    remainingWordsRef.current = new Set(activeWordList);
+    setRemainingCount(activeWordList.length);
     const firstWord = drawNextWord(mistakeCount);
     setQuestionNumber(1);
     setCurrentWord(firstWord);
@@ -316,6 +330,8 @@ function App() {
     resetRoundUi();
     setIsSpeaking(false);
     pendingRef.current = [];
+    remainingWordsRef.current = new Set();
+    setRemainingCount(0);
   };
   const handleWordListChange = (key: string) => {
     setActiveWordListKey(key);
@@ -461,6 +477,12 @@ function App() {
       setTotalCorrect((previous) => previous + 1);
       nextMistakeCount = { ...mistakeCount };
       delete nextMistakeCount[currentWord];
+      if (continueUntilCorrect) {
+        const removed = remainingWordsRef.current.delete(currentWord);
+        if (removed) {
+          setRemainingCount((previous) => Math.max(0, previous - 1));
+        }
+      }
     } else {
       nextMistakeCount = {
         ...mistakeCount,
@@ -468,9 +490,15 @@ function App() {
       };
     }
     setMistakeCount(nextMistakeCount);
-    if (questionNumber >= questionsPerRound) {
+    if (
+      continueUntilCorrect
+        ? remainingWordsRef.current.size === 0
+        : questionNumber >= questionsPerRound
+    ) {
       // Einde ronde: geen nieuw woord meer klaarzetten.
-      setQuestionNumber(questionsPerRound);
+      if (!continueUntilCorrect) {
+        setQuestionNumber(questionsPerRound);
+      }
       setCurrentWord(null);
       setAnswer("");
       speakCelebration();
@@ -492,7 +520,10 @@ function App() {
   };
   const canDeleteActiveList = Boolean(userLists[activeWordListKey]);
   const roundFinished =
-    questionNumber >= questionsPerRound && currentWord === null;
+    currentWord === null &&
+    (continueUntilCorrect
+      ? remainingCount === 0
+      : questionNumber >= questionsPerRound);
   // Houd focus op het invoerveld tijdens actief dictee.
   useEffect(() => {
     if (currentWord) {
@@ -524,6 +555,7 @@ function App() {
           totalCorrect={totalCorrect}
           totalQuestions={totalQuestions}
           accuracy={accuracy}
+          isUnlimited={continueUntilCorrect}
         />
         {questionNumber === 0 && (
           <StartControls
@@ -531,10 +563,12 @@ function App() {
             activeWordListKey={activeWordListKey}
             questionsPerRound={questionsPerRound}
             customQuestionCount={customQuestionCount}
+            continueUntilCorrect={continueUntilCorrect}
             onListChange={handleWordListChange}
             onPresetSelect={setQuestionsPerRound}
             onCustomChange={setCustomQuestionCount}
             onCustomApply={applyCustomQuestionCount}
+            onContinueUntilCorrectChange={setContinueUntilCorrect}
             onStart={startRound}
             onNewList={openNewListDialog}
             onEditList={openEditListDialog}
